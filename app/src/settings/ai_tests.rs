@@ -391,7 +391,7 @@ fn test_toolbar_command_map_matched_agent() {
 }
 
 #[test]
-fn orchestration_v2_enables_orchestration_when_ai_is_enabled() {
+fn orchestration_v2_and_user_setting_enable_orchestration_when_ai_is_enabled() {
     let _orchestration_v2_flag = FeatureFlag::OrchestrationV2.override_enabled(true);
 
     App::test((), |mut app| async move {
@@ -400,6 +400,24 @@ fn orchestration_v2_enables_orchestration_when_ai_is_enabled() {
 
         AISettings::handle(&app).read(&app, |settings, ctx| {
             assert!(settings.is_orchestration_enabled(ctx));
+        });
+    });
+}
+
+#[test]
+fn orchestration_user_opt_out_disables_orchestration_even_when_v2_is_enabled() {
+    let _orchestration_v2_flag = FeatureFlag::OrchestrationV2.override_enabled(true);
+
+    App::test((), |mut app| async move {
+        initialize_settings_for_tests(&mut app);
+        add_ai_enablement_dependencies_for_test(&mut app);
+
+        AISettings::handle(&app).update(&mut app, |settings, ctx| {
+            report_if_error!(settings.orchestration_enabled.set_value(false, ctx));
+        });
+
+        AISettings::handle(&app).read(&app, |settings, ctx| {
+            assert!(!settings.is_orchestration_enabled(ctx));
         });
     });
 }
